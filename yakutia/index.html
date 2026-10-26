@@ -1,1 +1,679 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Викторина: Якутия</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            background-color: #061224; 
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(0, 150, 255, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(0, 255, 200, 0.1) 0%, transparent 40%),
+                linear-gradient(135deg, #061224 0%, #0a1c3a 100%);
+            color: #e0f0ff; 
+            font-family: 'Montserrat', sans-serif; 
+            min-height: 100vh; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
 
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                repeating-linear-gradient(45deg, transparent, transparent 40px, rgba(0, 200, 255, 0.03) 40px, rgba(0, 200, 255, 0.03) 41px),
+                repeating-linear-gradient(-45deg, transparent, transparent 40px, rgba(0, 200, 255, 0.03) 40px, rgba(0, 200, 255, 0.03) 41px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container {
+            background: rgba(10, 25, 47, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100, 200, 255, 0.3); 
+            border-radius: 24px;
+            padding: 35px; 
+            width: 100%; 
+            max-width: 700px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 0 30px rgba(0, 200, 255, 0.05);
+            position: relative;
+            z-index: 1;
+        }
+        
+        h1 { 
+            color: #ffffff; text-align: center; margin-bottom: 10px; font-size: 28px; font-weight: 900;
+            text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 15px rgba(100, 200, 255, 0.6);
+        }
+        
+        .subtitle { color: #88bbdd; text-align: center; font-size: 15px; margin-bottom: 25px; letter-spacing: 1px; }
+        .timer-box { text-align: center; font-size: 36px; font-weight: 900; color: #fff; margin-bottom: 20px; text-shadow: 0 0 20px rgba(100, 200, 255, 0.8); font-family: monospace; }
+        
+        #startScreen, #waitScreen, #quizScreen, #resultScreen, #snakeScreen { display: none; text-align: center; }
+        .active { display: block !important; }
+
+        .btn-start {
+            background: linear-gradient(135deg, #0077ff, #00d4ff); color: #fff; border: none;
+            padding: 16px 45px; border-radius: 12px; font-weight: 900; font-size: 20px;
+            cursor: pointer; transition: 0.3s; margin-top: 25px; box-shadow: 0 0 20px rgba(0, 150, 255, 0.5);
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-start:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(0, 200, 255, 0.8); }
+
+        .question-text { font-size: 20px; font-weight: 800; margin-bottom: 15px; line-height: 1.4; text-align: left; color: #fff; }
+        .options { display: flex; flex-direction: column; gap: 12px; }
+        
+        .option-btn {
+            background: rgba(0, 50, 100, 0.4); border: 1px solid rgba(100, 200, 255, 0.3); color: #e0f0ff; 
+            padding: 16px; border-radius: 10px; font-size: 16px; text-align: left; 
+            cursor: pointer; transition: 0.2s; font-family: inherit;
+        }
+        .option-btn:hover { background: rgba(0, 100, 200, 0.6); border-color: #00d4ff; transform: translateX(5px); }
+        .option-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .option-btn.selected { border-color: #00d4ff; background: rgba(0, 150, 255, 0.3); font-weight: bold; }
+
+        .players-status-box {
+            margin-top: 20px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(100, 200, 255, 0.2);
+            border-radius: 10px;
+            text-align: left;
+        }
+        .players-status-box h4 { color: #88bbdd; margin-bottom: 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+        .players-status-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .player-status {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            background: rgba(100, 200, 255, 0.1);
+            border: 1px solid rgba(100, 200, 255, 0.2);
+        }
+        .player-status.answered { background: rgba(0, 255, 100, 0.15); border-color: rgba(0, 255, 100, 0.4); color: #00ff88; }
+        .player-status.thinking { background: rgba(255, 184, 108, 0.15); border-color: rgba(255, 184, 108, 0.4); color: #ffb86c; }
+
+        .leaderboard { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(100, 200, 255, 0.2); border-radius: 10px; padding: 15px; margin-top: 20px; text-align: left; }
+        .leaderboard h3 { color: #00d4ff; margin-bottom: 10px; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+        .leader-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(100, 200, 255, 0.1); font-size: 15px; }
+        .leader-item:last-child { border-bottom: none; }
+
+        #resultScreen { text-align: left; }
+        #resultScreen h1 { text-align: center; }
+        .score { font-size: 52px; font-weight: 900; color: #00d4ff; margin-bottom: 10px; text-align: center; text-shadow: 0 0 20px rgba(0, 212, 255, 0.5); }
+        .score-text { font-size: 20px; margin-bottom: 30px; text-align: center; color: #88bbdd; }
+        
+        .review-item { background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(100, 200, 255, 0.2); border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+        .review-question { font-weight: 800; color: #fff; margin-bottom: 5px; font-size: 16px; }
+        .review-answer { color: #00ff88; font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+        .review-explanation { color: #88bbdd; font-size: 14px; line-height: 1.4; }
+        
+        .player-name-input {
+            width: 100%; padding: 14px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(100, 200, 255, 0.3);
+            border-radius: 8px; color: #fff; font-family: inherit; font-size: 18px; outline: none;
+            margin-bottom: 15px; text-align: center; transition: 0.2s;
+        }
+        .player-name-input:focus { border-color: #00d4ff; box-shadow: 0 0 10px rgba(0, 212, 255, 0.2); }
+
+        #snakeCanvas { background: rgba(0, 10, 20, 0.8); border: 2px solid rgba(0, 212, 255, 0.4); border-radius: 10px; margin-top: 15px; box-shadow: 0 0 20px rgba(0, 212, 255, 0.2); max-width: 100%; }
+        .snake-info { color: #00d4ff; font-weight: bold; margin-top: 10px; font-size: 18px; text-transform: uppercase; letter-spacing: 1px;}
+        
+        .snake-controls { display: grid; grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(3, 60px); gap: 5px; justify-content: center; margin-top: 15px; }
+        .snake-btn {
+            background: rgba(0, 50, 100, 0.6); border: 2px solid rgba(100, 200, 255, 0.3); border-radius: 10px; 
+            color: #00d4ff; font-size: 24px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; user-select: none; transition: 0.1s;
+        }
+        .snake-btn:active { background: #00d4ff; color: #000; }
+        .snake-btn.empty { background: transparent; border: none; cursor: default; }
+
+        .restart-text { color: #88bbdd; font-weight: bold; margin-top: 20px; font-size: 18px; }
+        #restartTimer { color: #00d4ff; font-size: 24px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Викторина: Якутия</h1>
+        
+        <div class="timer-box" id="timerDisplay" style="display: none;">Загрузка...</div>
+
+        <div id="startScreen" class="active">
+            <p class="subtitle">Проверь свои знания о самом холодном регионе России</p>
+            <input type="text" id="playerNameInput" class="player-name-input" placeholder="Введи свое имя" maxlength="15">
+            <button class="btn-start" onclick="joinGame()">Начать игру</button>
+        </div>
+
+        <div id="waitScreen">
+            <p class="subtitle">Ожидание следующего раунда...</p>
+            <div class="leaderboard">
+                <h3>Игроки в лобби:</h3>
+                <div id="lobbyList">Ждем игроков...</div>
+            </div>
+        </div>
+
+        <div id="quizScreen">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 16px; color: #00d4ff; font-weight: bold;">
+                <span id="questionCounter">Вопрос 1/10</span>
+                <span id="scoreCounter">Баллы: 0</span>
+            </div>
+            <div class="question-text" id="questionText"></div>
+            <div class="options" id="optionsContainer"></div>
+            
+            <div class="players-status-box">
+                <h4>Кто уже ответил:</h4>
+                <div class="players-status-list" id="playersStatusList"></div>
+            </div>
+        </div>
+
+        <div id="snakeScreen">
+            <h2 style="color: #00d4ff; margin-bottom: 10px; font-size: 22px; text-transform: uppercase; letter-spacing: 1px;" id="snakeTitle">Ответ принят! Играй в змейку.</h2>
+            <div class="snake-info">Твой счет: <span id="snakeScore">0</span></div>
+            <canvas id="snakeCanvas" width="300" height="300"></canvas>
+            
+            <div class="snake-controls">
+                <div class="snake-btn empty"></div>
+                <button class="snake-btn" onclick="changeDir(0, -1)">↑</button>
+                <div class="snake-btn empty"></div>
+                <button class="snake-btn" onclick="changeDir(-1, 0)">←</button>
+                <div class="snake-btn empty"></div>
+                <button class="snake-btn" onclick="changeDir(1, 0)">→</button>
+                <div class="snake-btn empty"></div>
+                <button class="snake-btn" onclick="changeDir(0, 1)">↓</button>
+                <div class="snake-btn empty"></div>
+            </div>
+        </div>
+
+        <div id="resultScreen">
+            <h1 style="color: #fff;">Раунд окончен!</h1>
+            <div class="score" id="finalScore">0 / 10</div>
+            <div class="score-text" id="finalText">Твой результат</div>
+            <div class="restart-text">Новый раунд через <span id="restartTimer">15</span> сек...</div>
+
+            <div class="leaderboard" style="margin-bottom: 20px; margin-top: 20px;">
+                <h3>Топ игроков:</h3>
+                <div id="finalList"></div>
+            </div>
+            <h3 style="color: #00d4ff; margin-bottom: 15px; font-size: 20px; text-transform: uppercase;">Разбор ответов:</h3>
+            <div id="reviewList"></div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyC1Qrdl-tuxjodpFgNDdpAtF_VSCv9Orlw",
+            authDomain: "trty1-39fcb.firebaseapp.com",
+            databaseURL: "https://trty1-39fcb-default-rtdb.firebaseio.com",
+            projectId: "trty1-39fcb",
+            storageBucket: "trty1-39fcb.firebasestorage.app",
+            messagingSenderId: "438515366192",
+            appId: "1:438515366192:web:f77d084c734df6935d70f5"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const allQuestions = [
+            { q: "Какой город является столицей Якутии?", o: ["Мирный", "Якутск", "Нюрба", "Ленск"], a: 1, e: "Якутск — столица Республики Саха (Якутия), основан в 1632 году." },
+            { q: "Какой полюс холода находится в Якутии?", o: ["Северный", "Южный", "Оймякон", "Верхоянск"], a: 2, e: "Оймякон считается полюсом холода, где температура опускалась ниже -70°C." },
+            { q: "Что добывают в Якутии в больших количествах (город Мирный)?", o: ["Золото", "Алмазы", "Нефть", "Уголь"], a: 1, e: "Мирный — центр алмазодобывающей промышленности, там находится карьер «Мир»." },
+            { q: "Какая река является главной водной артерией Якутии?", o: ["Обь", "Енисей", "Лена", "Амур"], a: 2, e: "Река Лена протекает через всю Якутию и впадает в море Лаптевых." },
+            { q: "Какое животное является символом Якутии и изображено на гербе?", o: ["Белый медведь", "Лошадь", "Мамонт", "Олень"], a: 1, e: "На гербе Якутии изображена лошадь, так как коневодство — традиционное занятие якутов." },
+            { q: "Как называется традиционное якутское жилище?", o: ["Юрта", "Чум", "Балаган", "Изба"], a: 2, e: "Балаган — традиционное зимнее жилище якутов, а летнее — ураса." },
+            { q: "Какое полезное ископаемое добывают в городе Удачный?", o: ["Алмазы", "Золото", "Газ", "Медь"], a: 0, e: "Удачный — один из крупнейших центров добычи алмазов в мире." },
+            { q: "Какой якутский праздник встречи лета отмечается в июне?", o: ["Сабантуй", "Ысыах", "Масленица", "Купала"], a: 1, e: "Ысыах — главный якутский праздник, символизирующий встречу лета и обновление." },
+            { q: "Какой самый большой карьер по добыче алмазов в мире находится в Якутии?", o: ["Мир", "Удачный", "Айхал", "Кимберли"], a: 0, e: "Карьер «Мир» в городе Мирный — один из крупнейших в мире." },
+            { q: "Какое море омывает северные берега Якутии?", o: ["Черное", "Балтийское", "Море Лаптевых", "Охотское"], a: 2, e: "Море Лаптевых омывает северное побережье Якутии." },
+            { q: "Где находится знаменитая Ленские столбы?", o: ["В Якутии", "В Карелии", "На Урале", "На Кавказе"], a: 0, e: "Ленские столбы — уникальный природный парк на берегу реки Лены в Якутии." },
+            { q: "Какое дерево является самым распространенным в тайге Якутии?", o: ["Береза", "Лиственница", "Сосна", "Кедр"], a: 1, e: "Лиственница — основное дерево якутской тайги, она выдерживает экстремальные морозы." },
+            { q: "Сколько месяцев в году может длиться зима в Якутии?", o: ["3 месяца", "5 месяцев", "7-8 месяцев", "Круглый год"], a: 2, e: "Зима в Якутии очень долгая и может длиться до 7-8 месяцев." },
+            { q: "Что такое «алмазный карьер «Мир»»?", o: ["Гора", "Вулкан", "Кимберлитовая трубка", "Пещера"], a: 2, e: "Карьер «Мир» — это гигантская кимберлитовая трубка, где добывают алмазы." },
+            { q: "Кто такие «якутские лошади»?", o: ["Дикие мустанги", "Аборигенная порода", "Пони", "Скакуны"], a: 1, e: "Якутские лошади — древняя аборигенная порода, приспособленная к суровому климату." },
+            { q: "Что такое «варган» (хосус)?", o: ["Барабан", "Духовой инструмент", "Язычковый музыкальный инструмент", "Струнный инструмент"], a: 2, e: "Хомус (варган) — древний якутский музыкальный инструмент, символ культуры." },
+            { q: "Какой заповедник находится в Якутии?", o: ["Остров Врангеля", "Усть-Ленский", "Баргузинский", "Кроноцкий"], a: 1, e: "Усть-Ленский заповедник расположен в дельте реки Лены." },
+            { q: "Какая температура считается для Якутии «теплой» зимой?", o: ["-10°C", "-20°C", "-30°C", "-40°C"], a: 2, e: "Для Якутии -30°C зимой — это относительно «тепло», местные жители привыкли к холодам." },
+            { q: "Как называется якутский национальный нож?", o: ["Мачете", "Быhах", "Кинжал", "Тесак"], a: 1, e: "Быhах — традиционный якутский нож с длинным лезвием." },
+            { q: "Что символизирует Ысыах?", o: ["Встречу зимы", "Встречу лета", "Сбор урожая", "Новый год"], a: 1, e: "Ысыах — праздник встречи лета, солнца и пробуждения природы." },
+            { q: "В каком году Якутск был основан?", o: ["1632", "1700", "1800", "1900"], a: 0, e: "Якутск основан в 1632 году казаками под руководством Петра Бекетова." },
+            { q: "Какой якутский писатель написал роман «По велению Чингисхана»?", o: ["А. Пушкин", "Н. Лугинов", "В. Распутин", "А. Чехов"], a: 1, e: "Николай Лугинов — известный якутский писатель, автор романа «По велению Чингисхана»." },
+            { q: "Какое озеро является самым большим в Якутии?", o: ["Байкал", "Лабынкыр", "Моготоево", "Нерпичье"], a: 2, e: "Озеро Моготоево — крупнейшее озеро в Якутии." },
+            { q: "Что такое «Алдан»?", o: ["Река", "Гора", "Город", "Озеро"], a: 0, e: "Алдан — крупная река, приток Лены, протекает по территории Якутии." },
+            { q: "Что добывают в городе Нерюнгри?", o: ["Уголь", "Алмазы", "Золото", "Газ"], a: 0, e: "Нерюнгри — центр добычи коксующегося угля." },
+            { q: "Какая ягода растет в тундре Якутии?", o: ["Малина", "Брусника", "Клубника", "Смородина"], a: 1, e: "Брусника — одна из самых распространенных ягод в тундре и лесотундре Якутии." },
+            { q: "Как называется традиционный якутский хоровод?", o: ["Осуохай", "Хоровод", "Карагод", "Ручеек"], a: 0, e: "Осуохай — якутский хоровод, исполняемый на празднике Ысыах." },
+            { q: "Какой хищник является самым крупным в Якутии?", o: ["Бурый медведь", "Волк", "Росомаха", "Рысь"], a: 0, e: "Бурый медведь — крупнейший хищник якутской тайги." },
+            { q: "Что такое «мамонтовая кость»?", o: ["Бивень слона", "Кость мамонта", "Зуб кита", "Рог оленя"], a: 1, e: "В Якутии находят бивни мамонтов, которые высоко ценятся." },
+            { q: "Какой город Якутии является портом на реке Лене?", o: ["Якутск", "Олекминск", "Ленск", "Все вышеперечисленные"], a: 3, e: "Все эти города расположены на реке Лене и являются портами." },
+            { q: "Как называется якутская народная сказка о богатыре?", o: ["Олонхо", "Былина", "Сказка", "Легенда"], a: 0, e: "Олонхо — древний якутский героический эпос, признанный ЮНЕСКО." },
+            { q: "Какая птица изображена на флаге Якутии?", o: ["Орел", "Сокол", "Стерх", "Журавль"], a: 2, e: "На флаге Якутии изображен стерх (белый журавль) на фоне солнца." },
+            { q: "Какое животное является символом якутской зимы?", o: ["Белый медведь", "Северный олень", "Песец", "Заяц"], a: 1, e: "Северный олень — важное животное для коренных народов Якутии." },
+            { q: "Что такое «Ленские столбы»?", o: ["Горы", "Скалы", "Пещеры", "Водопады"], a: 1, e: "Ленские столбы — это величественные скалы на берегу Лены." },
+            { q: "Какая река впадает в Лену?", o: ["Алдан", "Енисей", "Обь", "Амур"], a: 0, e: "Алдан — крупнейший приток Лены." },
+            { q: "Какой якутский художник известен своими картинами о Якутии?", o: ["И. Левитан", "Т. Степанов", "И. Шишкин", "В. Васнецов"], a: 1, e: "Тимофей Степанов — якутский художник, писавший природу и быт Якутии." },
+            { q: "Какая якутская народная игра популярна среди детей?", o: ["Лапта", "Хабылык", "Городки", "Прятки"], a: 1, e: "Хабылык — традиционная якутская игра с палочками." },
+            { q: "Что такое «Туймаада»?", o: ["Долина", "Гора", "Река", "Озеро"], a: 0, e: "Туймаада — долина, в которой расположен Якутск." },
+            { q: "Какой якутский национальный костюм?", o: ["Сарафан", "Кафтан", "Сон", "Халат"], a: 2, e: "Сон — традиционная якутская верхняя одежда." },
+            { q: "Какая якутская народная песня известна?", o: ["Калинка", "Осуохай", "Катюша", "Подмосковные вечера"], a: 1, e: "Осуохай — это не только хоровод, но и традиционная народная песня." },
+            { q: "Что такое «якутский мороз»?", o: ["Сильный ветер", "Туман", "Экстремально низкая температура", "Снегопад"], a: 2, e: "Якутский мороз — это экстремально низкие температуры, достигающие -50°C и ниже." },
+            { q: "Какой минерал добывают в Якутии, кроме алмазов?", o: ["Изумруд", "Золото", "Рубин", "Сапфир"], a: 1, e: "Якутия богата не только алмазами, но и золотом." },
+            { q: "Что такое «Вилюй»?", o: ["Река", "Гора", "Город", "Озеро"], a: 0, e: "Вилюй — крупная река в Якутии, приток Лены." },
+            { q: "Какой якутский праздник отмечается в декабре?", o: ["Ысыах", "Новый год", "День рождения Якутска", "День охотника"], a: 1, e: "В декабре в Якутии, как и по всей России, отмечают Новый год." },
+            { q: "Что такое «Якутская ТЭЦ»?", o: ["Теплоэлектроцентраль", "Гидроэлектростанция", "Атомная станция", "Солнечная станция"], a: 0, e: "Якутская ТЭЦ — это теплоэлектроцентраль, обеспечивающая город теплом и электричеством." },
+            { q: "Какой якутский национальный напиток?", o: ["Квас", "Кумыс", "Чай", "Морс"], a: 1, e: "Кумыс — традиционный якутский напиток из кобыльего молока." },
+            { q: "Что такое «Якутский государственный университет»?", o: ["Школа", "ВУЗ", "Колледж", "Лицей"], a: 1, e: "Якутский государственный университет — крупнейший ВУЗ в Якутии." },
+            { q: "Какой якутский театр известен?", o: ["Большой театр", "Театр оперы и балета", "Театр кукол", "Театр юного зрителя"], a: 1, e: "Якутский государственный театр оперы и балета — один из ведущих театров республики." },
+            { q: "Что такое «Якутский музей мамонта»?", o: ["Музей истории", "Музей природы", "Музей мамонтов", "Художественный музей"], a: 2, e: "Музей мамонта в Якутске посвящен древним животным, обитавшим на этой территории." },
+            { q: "Какой якутский спорт популярен?", o: ["Футбол", "Хоккей", "Мас-рестлинг", "Баскетбол"], a: 2, e: "Мас-рестлинг — традиционный якутский вид спорта, перетягивание палки." },
+            { q: "Что такое «Якутский пантеон»?", o: ["Место захоронения", "Храм", "Музей", "Парк"], a: 0, e: "Якутский пантеон — место захоронения выдающихся деятелей Якутии." },
+            { q: "Какой город является административным центром Мирнинского улуса?", o: ["Ленск", "Мирный", "Удачный", "Айхал"], a: 1, e: "Мирный — административный центр Мирнинского района." },
+            { q: "Какой город считается 'алмазной столицей' Якутии?", o: ["Якутск", "Мирный", "Нерюнгри", "Ленск"], a: 1, e: "Мирный — неофициальная алмазная столица России." },
+            { q: "Город, который является центром угольной промышленности Якутии?", o: ["Нерюнгри", "Покровск", "Олекминск", "Вилюйск"], a: 0, e: "Нерюнгри — центр добычи коксующегося угля." },
+            { q: "Какой город расположен на левом берегу реки Лены?", o: ["Якутск", "Покровск", "Ленск", "Олекминск"], a: 2, e: "Ленск расположен на левом берегу реки Лены." },
+            { q: "Какой улус (район) является самым северным в Якутии?", o: ["Анабарский", "Булунский", "Усть-Янский", "Нижнеколымский"], a: 0, e: "Анабарский улус — самый северный район Якутии." },
+            { q: "Какой город является центром Оймяконского улуса?", o: ["Оймякон", "Усть-Нера", "Томтор", "Верхоянск"], a: 1, e: "Усть-Нера — административный центр Оймяконского улуса." },
+            { q: "Какой город считается 'воротами' в Якутию?", o: ["Ленск", "Нерюнгри", "Якутск", "Олекминск"], a: 1, e: "Нерюнгри часто называют 'воротами' в Якутию, так как там находится крупная железнодорожная станция." },
+            { q: "Какой улус Якутии знаменит своими целебными источниками?", o: ["Намский", "Хангаласский", "Верхоянский", "Таттинский"], a: 0, e: "Намский улус известен своими целебными источниками и курортами." },
+            { q: "Город, который является центром Верхоянского улуса?", o: ["Верхоянск", "Батагай", "Томтор", "Усть-Нера"], a: 1, e: "Батагай — административный центр Верхоянского района." },
+            { q: "В каком улусе находится знаменитый 'Батагайский провал'?", o: ["Верхоянский", "Абыйский", "Момский", "Оймяконский"], a: 0, e: "Батагайский провал (термокарстовая воронка) находится в Верхоянском улусе." },
+            { q: "Какой город является центром Хангаласского улуса?", o: ["Покровск", "Мохсоголлох", "Якутск", "Намцы"], a: 0, e: "Покровск — административный центр Хангаласского улуса." },
+            { q: "Какое село является центром Намского улуса?", o: ["Намцы", "Хатассы", "Маймага", "Табага"], a: 0, e: "Село Намцы — административный центр Намского улуса." },
+            { q: "Какой город находится ближе всего к Якутску?", o: ["Покровск", "Мирный", "Нерюнгри", "Ленск"], a: 0, e: "Покровск находится всего в ~70 км от Якутска." }
+        ];
+
+        let playerName = "";
+        let currentRoundId = null;
+        let myScore = 0;
+        let currentQuestionIndex = 0;
+        let roundQuestions = [];
+        let history = [];
+        
+        let globalTimerInterval = null;
+        let isCurrentQuestionAnswered = false;
+        let isGameRunning = false;
+        let lastPhase = '';
+        let playersRef = null;
+        let playersListener = null;
+
+        function getRoundId() {
+            const now = new Date();
+            const totalMinutes = Math.floor(now.getTime() / 60000);
+            const roundNumber = Math.floor(totalMinutes / 6);
+            return "round_" + roundNumber;
+        }
+
+        function getPhase() {
+            const now = new Date();
+            const totalMinutes = Math.floor(now.getTime() / 60000);
+            const minuteInCycle = totalMinutes % 6;
+            
+            if (minuteInCycle === 5) {
+                return { phase: 'wait', timeLeft: 60 - now.getSeconds() };
+            } else {
+                return { phase: 'play', timeLeft: (5 - minuteInCycle) * 60 - now.getSeconds() };
+            }
+        }
+
+        function joinGame() {
+            const nameInput = document.getElementById('playerNameInput').value.trim();
+            if (!nameInput) {
+                alert('Пожалуйста, введи свое имя!');
+                return;
+            }
+            playerName = nameInput;
+            document.getElementById('startScreen').style.display = 'none';
+            init();
+        }
+
+        function init() {
+            currentRoundId = getRoundId();
+            
+            db.ref(`yakutia_game/${currentRoundId}/players/${playerName}`).set({
+                score: 0,
+                joinedAt: Date.now(),
+                answered: false
+            });
+
+            playersRef = db.ref(`yakutia_game/${currentRoundId}/players`);
+            playersListener = playersRef.on('value', snap => {
+                const players = snap.val() || {};
+                renderLeaderboard(players, 'lobbyList');
+                renderLeaderboard(players, 'finalList');
+                renderPlayersStatus(players);
+            });
+
+            startServerLoop();
+        }
+
+        function startServerLoop() {
+            if (globalTimerInterval) clearInterval(globalTimerInterval);
+            
+            const tick = () => {
+                const state = getPhase();
+                const timerDisplay = document.getElementById('timerDisplay');
+                timerDisplay.style.display = 'block';
+
+                const mins = Math.floor(state.timeLeft / 60);
+                const secs = state.timeLeft % 60;
+                timerDisplay.textContent = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+
+                if (state.phase !== lastPhase) {
+                    lastPhase = state.phase;
+                    
+                    if (state.phase === 'wait') {
+                        if (isGameRunning) {
+                            endGame();
+                        }
+                        showWaitScreen();
+                    } else {
+                        if (!isGameRunning) {
+                            startGame();
+                        }
+                    }
+                }
+            };
+
+            tick();
+            globalTimerInterval = setInterval(tick, 1000);
+        }
+
+        function showWaitScreen() {
+            document.getElementById('waitScreen').style.display = 'block';
+            document.getElementById('quizScreen').style.display = 'none';
+            document.getElementById('snakeScreen').style.display = 'none';
+        }
+
+        function startGame() {
+            isGameRunning = true;
+            myScore = 0;
+            currentQuestionIndex = 0;
+            history = [];
+            isCurrentQuestionAnswered = false;
+            
+            const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
+            roundQuestions = shuffled.slice(0, 10);
+            
+            document.getElementById('waitScreen').style.display = 'none';
+            document.getElementById('resultScreen').style.display = 'none';
+            document.getElementById('snakeScreen').style.display = 'none';
+            document.getElementById('quizScreen').style.display = 'block';
+
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQuestionIndex >= roundQuestions.length) {
+                endGame();
+                return;
+            }
+
+            isCurrentQuestionAnswered = false;
+            document.getElementById('snakeScreen').style.display = 'none';
+            document.getElementById('quizScreen').style.display = 'block';
+
+            const q = roundQuestions[currentQuestionIndex];
+            document.getElementById('questionCounter').textContent = `Вопрос ${currentQuestionIndex + 1}/${roundQuestions.length}`;
+            document.getElementById('scoreCounter').textContent = `Баллы: ${myScore}`;
+            document.getElementById('questionText').textContent = q.q;
+
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+
+            q.o.forEach((option, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.textContent = option;
+                btn.onclick = () => checkAnswer(index, btn, q.a, q.e);
+                optionsContainer.appendChild(btn);
+            });
+
+            if (currentRoundId && playerName) {
+                db.ref(`yakutia_game/${currentRoundId}/players/${playerName}/answered`).set(false);
+            }
+        }
+
+        function checkAnswer(selectedIndex, btn, correctIndex, explanation) {
+            if (isCurrentQuestionAnswered) return;
+            isCurrentQuestionAnswered = true;
+            
+            document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+            btn.classList.add('selected');
+
+            let isCorrect = selectedIndex === correctIndex;
+            if (isCorrect) myScore += 10;
+
+            history.push({
+                question: roundQuestions[currentQuestionIndex].q,
+                correctAnswer: roundQuestions[currentQuestionIndex].o[correctIndex],
+                explanation: explanation,
+                isCorrect: isCorrect
+            });
+
+            document.getElementById('scoreCounter').textContent = `Баллы: ${myScore}`;
+            
+            if (currentRoundId && playerName) {
+                db.ref(`yakutia_game/${currentRoundId}/players/${playerName}/score`).set(myScore);
+                db.ref(`yakutia_game/${currentRoundId}/players/${playerName}/answered`).set(true);
+            }
+
+            setTimeout(() => {
+                document.getElementById('quizScreen').style.display = 'none';
+                document.getElementById('snakeScreen').style.display = 'block';
+                startSnake();
+            }, 500);
+        }
+
+        function endGame() {
+            isGameRunning = false;
+            stopSnake();
+            
+            document.getElementById('quizScreen').style.display = 'none';
+            document.getElementById('snakeScreen').style.display = 'none';
+            document.getElementById('resultScreen').style.display = 'block';
+
+            document.getElementById('finalScore').textContent = `${myScore} / ${roundQuestions.length * 10}`;
+            
+            let finalText = "Твой результат";
+            if (myScore === roundQuestions.length * 10) finalText = "Идеально! Ты знаток Якутии!";
+            else if (myScore >= 60) finalText = "Хороший результат!";
+            else finalText = "Стоит еще почитать про Якутию.";
+
+            document.getElementById('finalText').textContent = finalText;
+
+            const reviewList = document.getElementById('reviewList');
+            reviewList.innerHTML = '';
+
+            history.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'review-item';
+                div.innerHTML = `
+                    <div class="review-question">${index + 1}. ${item.question}</div>
+                    <div class="review-answer">Правильный ответ: ${item.correctAnswer}</div>
+                    <div class="review-explanation">${item.explanation}</div>
+                `;
+                reviewList.appendChild(div);
+            });
+        }
+
+        function renderLeaderboard(players, elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const sorted = Object.keys(players).map(name => ({
+                name: name,
+                score: players[name].score || 0
+            })).sort((a, b) => b.score - a.score);
+            
+            el.innerHTML = '';
+            sorted.forEach((p, index) => {
+                const div = document.createElement('div');
+                div.className = 'leader-item';
+                div.innerHTML = `<span>${index + 1}. ${p.name}</span> <span style="color: #00ff88; font-weight: bold;">${p.score} б.</span>`;
+                el.appendChild(div);
+            });
+        }
+
+        function renderPlayersStatus(players) {
+            const list = document.getElementById('playersStatusList');
+            if (!list) return;
+            
+            list.innerHTML = '';
+            Object.keys(players).forEach(name => {
+                const p = players[name];
+                const div = document.createElement('div');
+                div.className = 'player-status ' + (p.answered ? 'answered' : 'thinking');
+                div.textContent = `${name} — ${p.answered ? '✅ Ответил' : '⏳ Думает'}`;
+                list.appendChild(div);
+            });
+        }
+
+        // --- ЛОГИКА ЗМЕЙКИ ---
+        let snakeInterval = null;
+        let snakeCanvas, snakeCtx;
+        let snake, food, dx, dy, snakeScore, changingDirection;
+        const gridSize = 15;
+        const tileCount = 20;
+
+        function startSnake() {
+            snakeCanvas = document.getElementById('snakeCanvas');
+            snakeCtx = snakeCanvas.getContext('2d');
+            
+            snake = [{x: 10, y: 10}];
+            food = {x: 5, y: 5};
+            dx = 0;
+            dy = 0;
+            snakeScore = 0;
+            changingDirection = false;
+            
+            document.getElementById('snakeScore').textContent = snakeScore;
+            
+            if(snakeInterval) clearInterval(snakeInterval);
+            snakeInterval = setInterval(gameLoop, 100);
+        }
+
+        function stopSnake() {
+            if(snakeInterval) clearInterval(snakeInterval);
+            snakeInterval = null;
+        }
+
+        function gameLoop() {
+            if (!snakeCanvas || document.getElementById('snakeScreen').style.display === 'none') return;
+            
+            moveSnake();
+            if (hasGameEnded()) {
+                snake = [{x: 10, y: 10}];
+                dx = 0; dy = 0;
+                snakeScore = 0;
+                document.getElementById('snakeScore').textContent = snakeScore;
+            } else {
+                drawSnake();
+            }
+        }
+
+        function moveSnake() {
+            const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+            snake.unshift(head);
+            
+            const hasEatenFood = snake[0].x === food.x && snake[0].y === food.y;
+            if (hasEatenFood) {
+                snakeScore++;
+                document.getElementById('snakeScore').textContent = snakeScore;
+                generateFood();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function hasGameEnded() {
+            for (let i = 4; i < snake.length; i++) {
+                if (snake[i].x === snake[0].x && snake[i].y === snake[0].y) return true;
+            }
+            const hitLeftWall = snake[0].x < 0;
+            const hitRightWall = snake[0].x > tileCount - 1;
+            const hitTopWall = snake[0].y < 0;
+            const hitBottomWall = snake[0].y > tileCount - 1;
+            return hitLeftWall || hitRightWall || hitTopWall || hitBottomWall;
+        }
+
+        function drawSnake() {
+            snakeCtx.fillStyle = '#061224';
+            snakeCtx.fillRect(0, 0, snakeCanvas.width, snakeCanvas.height);
+            
+            snakeCtx.fillStyle = '#00ffcc';
+            snakeCtx.shadowColor = '#00ffcc';
+            snakeCtx.shadowBlur = 10;
+            snakeCtx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
+            snakeCtx.shadowBlur = 0;
+            
+            for (let i = 0; i < snake.length; i++) {
+                if (i === 0) {
+                    snakeCtx.fillStyle = '#00ff88';
+                } else {
+                    snakeCtx.fillStyle = `rgba(0, 212, 255, ${1 - i / snake.length})`;
+                }
+                snakeCtx.fillRect(snake[i].x * gridSize, snake[i].y * gridSize, gridSize - 2, gridSize - 2);
+            }
+        }
+
+        function generateFood() {
+            food.x = Math.floor(Math.random() * tileCount);
+            food.y = Math.floor(Math.random() * tileCount);
+            for (let i = 0; i < snake.length; i++) {
+                if (snake[i].x === food.x && snake[i].y === food.y) {
+                    generateFood();
+                    break;
+                }
+            }
+        }
+
+        function changeDir(newDx, newDy) {
+            if (changingDirection) return;
+            if (dx === -newDx && dy === -newDy) return;
+            
+            dx = newDx;
+            dy = newDy;
+            changingDirection = true;
+            setTimeout(() => { changingDirection = false; }, 50);
+        }
+
+        document.addEventListener('keydown', e => {
+            if (document.getElementById('snakeScreen').style.display === 'none') return;
+            if (e.key === 'ArrowUp') changeDir(0, -1);
+            if (e.key === 'ArrowDown') changeDir(0, 1);
+            if (e.key === 'ArrowLeft') changeDir(-1, 0);
+            if (e.key === 'ArrowRight') changeDir(1, 0);
+        });
+
+        let touchStartX = 0;
+        let touchStartY = 0;
+        
+        setTimeout(() => {
+            const canvas = document.getElementById('snakeCanvas');
+            if(canvas) {
+                canvas.addEventListener('touchstart', e => {
+                    touchStartX = e.changedTouches[0].screenX;
+                    touchStartY = e.changedTouches[0].screenY;
+                }, {passive: true});
+
+                canvas.addEventListener('touchend', e => {
+                    let touchEndX = e.changedTouches[0].screenX;
+                    let touchEndY = e.changedTouches[0].screenY;
+
+                    if (Math.abs(touchEndX - touchStartX) > Math.abs(touchEndY - touchStartY)) {
+                        if (touchEndX < touchStartX) changeDir(-1, 0);
+                        if (touchEndX > touchStartX) changeDir(1, 0);
+                    } else {
+                        if (touchEndY < touchStartY) changeDir(0, -1);
+                        if (touchEndY > touchStartY) changeDir(0, 1);
+                    }
+                }, {passive: true});
+            }
+        }, 100);
+    </script>
+</body>
+</html>
